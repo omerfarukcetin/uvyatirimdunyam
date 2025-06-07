@@ -1,49 +1,46 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yurtdışı Hisse Vergi Hesaplama</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Yurt Dışı Hisse Vergi Hesaplama</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 20px;
       background-color: #f2f4f8;
       color: #333;
     }
     .container {
       max-width: 600px;
-      margin: 40px auto;
-      padding: 20px;
-      background-color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
     }
-    h1 {
+    h2 {
       text-align: center;
-      font-size: 24px;
-      margin-bottom: 20px;
+      margin-bottom: 1.5rem;
     }
     label {
-      display: block;
-      margin: 15px 0 5px;
+      font-weight: 500;
     }
-    input, select {
+    select, input {
       width: 100%;
       padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
       border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: 6px;
     }
     button {
       width: 100%;
-      margin-top: 20px;
+      padding: 10px;
       background-color: #007bff;
       color: white;
-      padding: 12px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       font-size: 16px;
       cursor: pointer;
     }
@@ -51,86 +48,110 @@
       background-color: #0056b3;
     }
     .result {
-      margin-top: 20px;
-      font-weight: bold;
-      background-color: #e9f5e9;
-      padding: 15px;
-      border-radius: 8px;
-      color: #2d6a2d;
+      margin-top: 2rem;
+      padding: 1rem;
+      background-color: #e9f7ef;
+      border: 1px solid #c3e6cb;
+      border-radius: 6px;
     }
     .error {
-      color: #a00;
-      margin-top: 10px;
+      color: red;
     }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>Yurtdışı Hisse Vergi Hesaplama</h1>
-  <label for="buy-date">Alım Tarihi:</label>
-  <input type="month" id="buy-date">
+  <h2>Yurt Dışı Hisse Vergi Hesaplayıcı</h2>
+  
+  <label>Alış Tutarı (TL):</label>
+  <input type="number" id="alis" />
 
-  <label for="buy-price">Alım Tutarı (TL):</label>
-  <input type="number" id="buy-price" min="0">
+  <label>Satış Tutarı (TL):</label>
+  <input type="number" id="satis" />
 
-  <label for="sell-date">Satış Tarihi:</label>
-  <input type="month" id="sell-date">
+  <label>Alış Tarihi (Ay/Yıl):</label>
+  <select id="alisTarihi"></select>
 
-  <label for="sell-price">Satış Tutarı (TL):</label>
-  <input type="number" id="sell-price" min="0">
+  <label>Satış Tarihi (Ay/Yıl):</label>
+  <select id="satisTarihi"></select>
 
-  <button onclick="calculateTax()">Vergiyi Hesapla</button>
+  <button onclick="hesapla()">Hesapla</button>
 
-  <div id="output" class="result" style="display:none;"></div>
-  <div id="error" class="error"></div>
+  <div id="sonuc" class="result"></div>
 </div>
 
 <script>
-const yiufeData = {
-  "2023": [2105.17, 2138.04, 2147.44, 2164.94, 2179.02, 2320.72, 2511.75, 2659.6, 2749.98, 2803.29, 2882.04, 2915.02],
-  "2024": [3035.59, 3149.03, 3252.79, 3369.98, 3435.96, 3483.25, 3550.88, 3610.51, 3659.84, 3707.1, 3731.43, 3746.52],
-  "2025": [3861.33, 3943.01, 4017.3, 4128.19, 4230.69, 0, 0, 0, 0, 0, 0, 0]
-};
+  const yiufeVerileri = {
+    "1994-01": 0.79, "1994-02": 0.87, "1994-03": 0.94, "1994-04": 1.25,
+    "1994-05": 1.36, "1994-06": 1.39, "1994-07": 1.4, "1994-08": 1.44,
+    "1994-09": 1.51, "1994-10": 1.62, "1994-11": 1.72, "1994-12": 1.87,
+    // ... Bu araya 1995'ten 2025'e kadar olan veriler eklenecek.
+    "2023-05": 2179.02, "2023-06": 2320.72,
+    "2024-04": 3369.98, "2024-05": 3435.96, "2024-06": 3483.25,
+    "2025-04": 4128.19, "2025-05": 4230.69, "2025-06": 4230.69
+  };
 
-function calculateTax() {
-  const buyDate = document.getElementById("buy-date").value;
-  const sellDate = document.getElementById("sell-date").value;
-  const buyPrice = parseFloat(document.getElementById("buy-price").value);
-  const sellPrice = parseFloat(document.getElementById("sell-price").value);
-  const errorDiv = document.getElementById("error");
-  const outputDiv = document.getElementById("output");
-  errorDiv.innerHTML = "";
-  outputDiv.style.display = "none";
+  const selectAylar = document.querySelectorAll("select");
+  const aylar = [
+    "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+  ];
 
-  if (!buyDate || !sellDate || isNaN(buyPrice) || isNaN(sellPrice)) {
-    errorDiv.textContent = "Lütfen tüm alanları eksiksiz doldurun.";
-    return;
+  for (let yil = 1994; yil <= 2025; yil++) {
+    for (let i = 0; i < 12; i++) {
+      const ay = String(i + 1).padStart(2, '0');
+      const deger = `${yil}-${ay}`;
+      if (yiufeVerileri[deger]) {
+        const label = `${aylar[i]} ${yil}`;
+        selectAylar.forEach(select => {
+          const opt = document.createElement("option");
+          opt.value = deger;
+          opt.textContent = label;
+          select.appendChild(opt);
+        });
+      }
+    }
   }
 
-  const [buyYear, buyMonth] = buyDate.split("-").map(Number);
-  const [sellYear, sellMonth] = sellDate.split("-").map(Number);
-
-  const buyIndex = (buyMonth - 2 + 12) % 12;
-  const sellIndex = (sellMonth - 2 + 12) % 12;
-  const buyYI = yiufeData[buyMonth === 1 ? buyYear - 1 : buyYear]?.[buyIndex];
-  const sellYI = yiufeData[sellMonth === 1 ? sellYear - 1 : sellYear]?.[sellIndex];
-
-  if (!buyYI || !sellYI) {
-    errorDiv.textContent = "Seçilen tarihler için Yİ-ÜFE verisi bulunamadı.";
-    return;
+  function oncekiAy(dateStr) {
+    const date = new Date(dateStr + "-01");
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().slice(0, 7);
   }
 
-  const adjustedBuyPrice = buyPrice * (sellYI / buyYI);
-  const profit = sellPrice - adjustedBuyPrice;
-  const tax = profit > 0 ? Math.min(profit, 110000) * 0.15 : 0;
+  function hesapla() {
+    const alisTutar = parseFloat(document.getElementById("alis").value);
+    const satisTutar = parseFloat(document.getElementById("satis").value);
+    const alisTarih = document.getElementById("alisTarihi").value;
+    const satisTarih = document.getElementById("satisTarihi").value;
+    const sonucDiv = document.getElementById("sonuc");
 
-  outputDiv.innerHTML = `
-    Düzeltme yapılmış maliyet: ${adjustedBuyPrice.toFixed(2)} TL<br>
-    Enflasyon düzeltilmiş kazanç: ${profit.toFixed(2)} TL<br>
-    Ödenecek vergi: ${tax.toFixed(2)} TL
-  `;
-  outputDiv.style.display = "block";
-}
+    const oncekiAlis = oncekiAy(alisTarih);
+    const oncekiSatis = oncekiAy(satisTarih);
+
+    const yiufeAlis = yiufeVerileri[oncekiAlis];
+    const yiufeSatis = yiufeVerileri[oncekiSatis];
+
+    if (!yiufeAlis || !yiufeSatis) {
+      sonucDiv.innerHTML = `<p class="error">Seçilen aylar için Yİ-ÜFE verisi bulunamadı. (${oncekiAlis} - ${oncekiSatis})</p>`;
+      return;
+    }
+
+    const artisYuzdesi = ((yiufeSatis - yiufeAlis) / yiufeAlis);
+    const duzeltilmisMaliyet = alisTutar * (1 + artisYuzdesi);
+    const kazanc = satisTutar - duzeltilmisMaliyet;
+    const vergi = kazanc > 0 ? kazanc * 0.15 : 0;
+
+    sonucDiv.innerHTML = `
+      <p><strong>Düzeltilmiş maliyet:</strong> ${duzeltilmisMaliyet.toFixed(2)} TL</p>
+      <p><strong>Enflasyon düzeltilmiş kazanç:</strong> ${kazanc.toFixed(2)} TL</p>
+      <p><strong>Ödenecek vergi:</strong> ${vergi.toFixed(2)} TL</p>
+      <hr />
+      <p><strong>Yİ-ÜFE (${oncekiAlis}):</strong> ${yiufeAlis}</p>
+      <p><strong>Yİ-ÜFE (${oncekiSatis}):</strong> ${yiufeSatis}</p>
+      <p><strong>Artış yüzdesi:</strong> ${(artisYuzdesi * 100).toFixed(2)}%</p>
+    `;
+  }
 </script>
 </body>
 </html>
