@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yİ-ÜFE Vergi Hesaplama Aracı</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    label, input, select, button {
+      display: block;
+      margin: 10px 0;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      background: #eef;
+    }
+  </style>
+</head>
+<body>
+  <h2>Yİ-ÜFE Bazlı Vergi Hesaplama Aracı</h2>
+  <label for="buyDate">Alım Tarihi:</label>
+  <input type="month" id="buyDate">
+
+  <label for="sellDate">Satış Tarihi:</label>
+  <input type="month" id="sellDate">
+
+  <label for="buyAmount">Alım Tutarı (TL):</label>
+  <input type="number" id="buyAmount" step="0.01">
+
+  <label for="sellAmount">Satış Tutarı (TL):</label>
+  <input type="number" id="sellAmount" step="0.01">
+
+  <button onclick="calculateTax()">Vergiyi Hesapla</button>
+
+  <div id="result" class="result"></div>
+
+  <script>
+    const yiugeData = {
+      "2023-05": 2179.02,
+      "2023-06": 2320.72,
+      "2024-04": 3369.98,
+      "2024-05": 3435.96,
+      "2024-06": 3483.25,
+      "2025-04": 4128.19,
+      "2025-05": 4230.69
+      // Verileri burada genişletebilirsin
+    };
+
+    function getPreviousMonth(monthStr) {
+      const [year, month] = monthStr.split('-').map(Number);
+      const date = new Date(year, month - 2); // -2: 0-index + 1 ay önce
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function calculateTax() {
+      const buyDate = document.getElementById('buyDate').value;
+      const sellDate = document.getElementById('sellDate').value;
+      const buyAmount = parseFloat(document.getElementById('buyAmount').value);
+      const sellAmount = parseFloat(document.getElementById('sellAmount').value);
+
+      if (!buyDate || !sellDate || isNaN(buyAmount) || isNaN(sellAmount)) {
+        document.getElementById('result').textContent = "Lütfen tüm alanları doğru girin.";
+        return;
+      }
+
+      const prevBuyMonth = getPreviousMonth(buyDate);
+      const prevSellMonth = getPreviousMonth(sellDate);
+
+      const startIndex = yiugeData[prevBuyMonth];
+      const endIndex = yiugeData[prevSellMonth];
+
+      if (!startIndex || !endIndex) {
+        document.getElementById('result').textContent = "Seçilen aylar için Yİ-ÜFE verisi bulunamadı.";
+        return;
+      }
+
+      const inflationRate = (endIndex - startIndex) / startIndex;
+      const inflationAdjustedBuy = buyAmount * (1 + inflationRate);
+      const profit = sellAmount - inflationAdjustedBuy;
+
+      let resultText = `Enflasyon oranı: ${(inflationRate * 100).toFixed(2)}%\n`;
+      resultText += `Enflasyona göre düzeltilmiş alım maliyeti: ${inflationAdjustedBuy.toFixed(2)} TL\n`;
+      resultText += `Vergilendirilecek kazanç: ${profit.toFixed(2)} TL\n`;
+
+      if (profit > 0) {
+        const tax = Math.min(profit, 110000) * 0.15;
+        resultText += `Ödenecek vergi: ${tax.toFixed(2)} TL`;
+      } else {
+        resultText += `Zarar ettiğiniz için vergi ödemezsiniz.`;
+      }
+
+      document.getElementById('result').textContent = resultText;
+    }
+  </script>
+</body>
+</html>
